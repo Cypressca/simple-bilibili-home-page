@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Bilibili Simple Home Page
 // @namespace    https://github.com/Cypressca/
-// @version      1.6.0
-// @description  A clean bilibili homepage with quick links, account entry, and system theme sync.
+// @version      1.7.0
+// @description  A clean bilibili homepage with quick links, account entry, and official system theme sync.
 // @author       Cypressca
 // @match        *://www.bilibili.com/*
 // @match        *://bilibili.com/*
@@ -24,12 +24,11 @@
 	const GLOBAL_STYLE_ID = 'be-google-home-global-style';
 	const HOST_ID = 'be-google-home-host';
 	const THEME_STYLE_ID = 'be-system-theme-style';
-	const THEME_FALLBACK_STYLE_ID = 'be-system-theme-fallback-style';
 
 	const isHome =
 		/^(www\.)?bilibili\.com$/.test(location.hostname) && /^(\/|\/index\.html)$/.test(location.pathname);
 
-	const enableSystemThemeSync = (isHomePage) => {
+	const enableSystemThemeSync = () => {
 		if (!/\.bilibili\.com$|^bilibili\.com$/.test(location.hostname)) return;
 		if (document.getElementById(THEME_STYLE_ID)) return;
 
@@ -40,70 +39,52 @@
 				color-scheme: light;
 			}
 
-			@media (prefers-color-scheme: dark) {
-				html[data-be-follow-system-theme="1"] {
-					color-scheme: dark;
-				}
+			html[data-be-follow-system-theme="1"][data-be-system-theme="dark"] {
+				color-scheme: dark;
 			}
 		`;
 		(document.head || document.documentElement).appendChild(style);
 
-		const mql = window.matchMedia('(prefers-color-scheme: dark)');
-		const fallbackStyle = document.createElement('style');
-		fallbackStyle.id = THEME_FALLBACK_STYLE_ID;
-		fallbackStyle.textContent = `
-			html[data-be-force-dark="1"] {
-				filter: invert(1) hue-rotate(180deg);
-			}
-
-			html[data-be-force-dark="1"] img,
-			html[data-be-force-dark="1"] video,
-			html[data-be-force-dark="1"] canvas,
-			html[data-be-force-dark="1"] svg,
-			html[data-be-force-dark="1"] iframe {
-				filter: invert(1) hue-rotate(180deg);
-			}
-		`;
-		(document.head || document.documentElement).appendChild(fallbackStyle);
-
-		let fallbackTimer = null;
-		const scheduleFallback = (mode) => {
-			if (isHomePage) {
-				document.documentElement.removeAttribute('data-be-force-dark');
-				return;
-			}
-			if (fallbackTimer) window.clearTimeout(fallbackTimer);
-			if (mode !== 'dark') {
-				document.documentElement.removeAttribute('data-be-force-dark');
-				return;
-			}
-
-			fallbackTimer = window.setTimeout(() => {
-				const darkHint = `${document.documentElement.className} ${document.body?.className || ''} ${document.documentElement.getAttribute('data-theme') || ''}`;
-				const hasNativeDark = /dark|night|theme-dark/i.test(darkHint);
-				if (!hasNativeDark) {
-					document.documentElement.setAttribute('data-be-force-dark', '1');
-				} else {
-					document.documentElement.removeAttribute('data-be-force-dark');
-				}
-			}, 1200);
+		const setThemeCookie = (isDark) => {
+			const value = isDark ? 'dark' : 'light';
+			document.cookie = `theme_style=${value}; path=/; domain=.bilibili.com; max-age=31536000`;
 		};
 
-		const applyThemeFlag = () => {
-			const mode = mql.matches ? 'dark' : 'light';
+		const setOfficialDarkState = (isDark) => {
+			const mode = isDark ? 'dark' : 'light';
 			document.documentElement.setAttribute('data-be-follow-system-theme', '1');
 			document.documentElement.setAttribute('data-be-system-theme', mode);
 			document.documentElement.setAttribute('data-theme', mode);
-			document.documentElement.classList.toggle('theme-dark', mode === 'dark');
-			document.documentElement.classList.toggle('theme-light', mode !== 'dark');
-			scheduleFallback(mode);
+			document.documentElement.classList.toggle('theme-dark', isDark);
+			document.documentElement.classList.toggle('theme-light', !isDark);
+
+			// Align with bilibili official dark mode persistence.
+			setThemeCookie(isDark);
+			try {
+				localStorage.setItem('pbp_theme_v4', isDark ? 'b' : 'w');
+			} catch (error) {
+				console.warn('[simple-bilibili] localStorage set failed:', error);
+			}
+
+			const applyBodyClass = () => {
+				if (!document.body) return;
+				document.body.classList.toggle('dark', isDark);
+				document.body.classList.toggle('integrated-dark', isDark);
+			};
+			applyBodyClass();
+			if (!document.body) {
+				window.addEventListener('DOMContentLoaded', applyBodyClass, { once: true });
+			}
 		};
 
-		applyThemeFlag();
-		mql.addEventListener('change', applyThemeFlag);
+		const mql = window.matchMedia('(prefers-color-scheme: dark)');
+		const applyTheme = () => setOfficialDarkState(mql.matches);
+
+		applyTheme();
+		mql.addEventListener('change', applyTheme);
 	};
 
-	enableSystemThemeSync(isHome);
+	enableSystemThemeSync();
 
 	// Only apply custom UI on bilibili home page.
 	if (!isHome) return;
