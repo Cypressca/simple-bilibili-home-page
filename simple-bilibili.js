@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Simple Home Page
 // @namespace    https://github.com/Cypressca/
-// @version      1.2.0
+// @version      1.3.0
 // @description  A clean bilibili homepage with quick links, search, and auto dark mode.
 // @author       Cypressca
 // @match        https://www.bilibili.com/
@@ -10,6 +10,8 @@
 // @license      MIT
 // @homepageURL  https://github.com/Cypressca/simple-bilibili-home-page
 // @supportURL   https://github.com/Cypressca/simple-bilibili-home-page/issues
+// @downloadURL  https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.js
+// @updateURL    https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.js
 // ==/UserScript==
 
 (() => {
