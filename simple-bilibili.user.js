@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Bilibili Simple Home Page
 // @namespace    https://github.com/Cypressca/
-// @version      1.5.0
+// @version      1.6.0
 // @description  A clean bilibili homepage with quick links, account entry, and system theme sync.
 // @author       Cypressca
 // @match        *://www.bilibili.com/*
 // @match        *://bilibili.com/*
 // @include      *://*.bilibili.com/*
 // @run-at       document-start
+// @noframes
 // @grant        none
 // @license      MIT
 // @homepageURL  https://github.com/Cypressca/simple-bilibili-home-page
@@ -18,12 +19,17 @@
 
 (() => {
 	'use strict';
+	if (window.top !== window.self) return;
 	const SCRIPT_FLAG = 'data-be-google-home';
 	const GLOBAL_STYLE_ID = 'be-google-home-global-style';
 	const HOST_ID = 'be-google-home-host';
 	const THEME_STYLE_ID = 'be-system-theme-style';
+	const THEME_FALLBACK_STYLE_ID = 'be-system-theme-fallback-style';
 
-	const enableSystemThemeSync = () => {
+	const isHome =
+		/^(www\.)?bilibili\.com$/.test(location.hostname) && /^(\/|\/index\.html)$/.test(location.pathname);
+
+	const enableSystemThemeSync = (isHomePage) => {
 		if (!/\.bilibili\.com$|^bilibili\.com$/.test(location.hostname)) return;
 		if (document.getElementById(THEME_STYLE_ID)) return;
 
@@ -43,23 +49,63 @@
 		(document.head || document.documentElement).appendChild(style);
 
 		const mql = window.matchMedia('(prefers-color-scheme: dark)');
+		const fallbackStyle = document.createElement('style');
+		fallbackStyle.id = THEME_FALLBACK_STYLE_ID;
+		fallbackStyle.textContent = `
+			html[data-be-force-dark="1"] {
+				filter: invert(1) hue-rotate(180deg);
+			}
+
+			html[data-be-force-dark="1"] img,
+			html[data-be-force-dark="1"] video,
+			html[data-be-force-dark="1"] canvas,
+			html[data-be-force-dark="1"] svg,
+			html[data-be-force-dark="1"] iframe {
+				filter: invert(1) hue-rotate(180deg);
+			}
+		`;
+		(document.head || document.documentElement).appendChild(fallbackStyle);
+
+		let fallbackTimer = null;
+		const scheduleFallback = (mode) => {
+			if (isHomePage) {
+				document.documentElement.removeAttribute('data-be-force-dark');
+				return;
+			}
+			if (fallbackTimer) window.clearTimeout(fallbackTimer);
+			if (mode !== 'dark') {
+				document.documentElement.removeAttribute('data-be-force-dark');
+				return;
+			}
+
+			fallbackTimer = window.setTimeout(() => {
+				const darkHint = `${document.documentElement.className} ${document.body?.className || ''} ${document.documentElement.getAttribute('data-theme') || ''}`;
+				const hasNativeDark = /dark|night|theme-dark/i.test(darkHint);
+				if (!hasNativeDark) {
+					document.documentElement.setAttribute('data-be-force-dark', '1');
+				} else {
+					document.documentElement.removeAttribute('data-be-force-dark');
+				}
+			}, 1200);
+		};
+
 		const applyThemeFlag = () => {
 			const mode = mql.matches ? 'dark' : 'light';
 			document.documentElement.setAttribute('data-be-follow-system-theme', '1');
 			document.documentElement.setAttribute('data-be-system-theme', mode);
+			document.documentElement.setAttribute('data-theme', mode);
 			document.documentElement.classList.toggle('theme-dark', mode === 'dark');
 			document.documentElement.classList.toggle('theme-light', mode !== 'dark');
+			scheduleFallback(mode);
 		};
 
 		applyThemeFlag();
 		mql.addEventListener('change', applyThemeFlag);
 	};
 
-	enableSystemThemeSync();
+	enableSystemThemeSync(isHome);
 
-	// Only apply on bilibili home page.
-	const isHome =
-		/^(www\.)?bilibili\.com$/.test(location.hostname) && /^(\/|\/index\.html)$/.test(location.pathname);
+	// Only apply custom UI on bilibili home page.
 	if (!isHome) return;
 
 	// Avoid duplicate injection.
