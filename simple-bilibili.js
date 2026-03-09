@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Bilibili Simple Home Page
 // @namespace    https://github.com/Cypressca/
-// @version      1.3.0
+// @version      1.4.0
 // @description  A clean bilibili homepage with quick links, search, and auto dark mode.
 // @author       Cypressca
-// @match        https://www.bilibili.com/
+// @match        https://www.bilibili.com/*
 // @run-at       document-start
 // @grant        none
 // @license      MIT
@@ -19,7 +19,7 @@
 
 	// Only apply on bilibili home page.
 	const isHome =
-		location.hostname === 'www.bilibili.com' && /^\/$/.test(location.pathname);
+		location.hostname === 'www.bilibili.com' && /^\/$|^\/index\.html$/.test(location.pathname);
 	if (!isHome) return;
 
 	// Avoid duplicate injection.

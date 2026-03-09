@@ -2,6 +2,8 @@
 
 一个用于 Tampermonkey 的哔哩哔哩主页精简脚本，提供更简洁、聚焦搜索的首页体验。
 
+[![安装脚本](https://img.shields.io/badge/Tampermonkey-一键安装-00AEEC?style=for-the-badge)](https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.user.js)
+
 ## 功能
 
 - 左上角快捷入口：动态、历史、稍后再看、收藏
@@ -48,6 +50,26 @@
 
 - 仅作用于 `https://www.bilibili.com/` 根路径。
 - 与 Bilibili Evolved 共存时，若出现样式冲突，建议在 Tampermonkey 中调整脚本顺序或优先级。
+
+## 常见问题
+
+### 1. 点击链接没有弹出安装
+
+- 请使用 `.user.js` 链接：
+	- `https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.user.js`
+- 确认 Tampermonkey 已安装并启用。
+
+### 2. 别的用户安装后不生效
+
+可能原因：
+- 安装的是旧版本脚本。
+- 浏览器打开的首页地址不是 `/`（例如 `/index.html`）。
+- Tampermonkey 没有该站点权限，或脚本被禁用。
+
+建议排查：
+1. 在 Tampermonkey 中确认脚本状态为“已启用”。
+2. 打开脚本管理页，手动点击“检查更新”。
+3. 访问 `https://www.bilibili.com/` 或 `https://www.bilibili.com/index.html` 复测。
 
 ## 文件结构
 
