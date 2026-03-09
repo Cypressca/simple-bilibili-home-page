@@ -20,7 +20,7 @@
 1. 浏览器安装 Tampermonkey：
 	- Chrome/Edge/Firefox 均可使用。
 2. 打开脚本直链（Raw）：
-	- `https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.js`
+	- `https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.user.js`
 3. Tampermonkey 会弹出安装页面，点击“安装”。
 4. 安装后访问：
 	- `https://www.bilibili.com/`
