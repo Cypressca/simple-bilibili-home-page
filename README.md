@@ -65,11 +65,19 @@
 - 安装的是旧版本脚本。
 - 浏览器打开的首页地址不是 `/`（例如 `/index.html`）。
 - Tampermonkey 没有该站点权限，或脚本被禁用。
+- 浏览器安装了多个同类脚本，对首页样式互相覆盖。
+- 扩展管理器使用了“受限模式”，未允许在 bilibili 上运行。
 
 建议排查：
 1. 在 Tampermonkey 中确认脚本状态为“已启用”。
 2. 打开脚本管理页，手动点击“检查更新”。
 3. 访问 `https://www.bilibili.com/` 或 `https://www.bilibili.com/index.html` 复测。
+
+### 3. 依赖与运行前提
+
+- 需要安装并启用 Tampermonkey（或兼容的 Userscript 管理器）。
+- 脚本适配域名：`bilibili.com` 与 `www.bilibili.com`。
+- 建议仅保留一个“首页改造类”脚本，避免互相覆盖。
 
 ## 文件结构
 

@@ -5,6 +5,7 @@
 // @description  A clean bilibili homepage with quick links, search, and auto dark mode.
 // @author       Cypressca
 // @match        https://www.bilibili.com/*
+// @match        https://bilibili.com/*
 // @run-at       document-start
 // @grant        none
 // @license      MIT
@@ -16,20 +17,29 @@
 
 (() => {
 	'use strict';
+	const SCRIPT_FLAG = 'data-be-google-home';
+	const GLOBAL_STYLE_ID = 'be-google-home-global-style';
+	const HOST_ID = 'be-google-home-host';
 
 	// Only apply on bilibili home page.
 	const isHome =
-		location.hostname === 'www.bilibili.com' && /^\/$|^\/index\.html$/.test(location.pathname);
+		/^(www\.)?bilibili\.com$/.test(location.hostname) && /^\/$|^\/index\.html$/.test(location.pathname);
 	if (!isHome) return;
 
 	// Avoid duplicate injection.
-	if (document.getElementById('be-google-home-host')) return;
+	if (document.getElementById(HOST_ID)) return;
+
+	const rollback = () => {
+		document.documentElement.removeAttribute(SCRIPT_FLAG);
+		document.getElementById(GLOBAL_STYLE_ID)?.remove();
+		document.getElementById(HOST_ID)?.remove();
+	};
 
 	// Mark page as controlled as early as possible to prevent FOUC.
-	document.documentElement.setAttribute('data-be-google-home', '1');
+	document.documentElement.setAttribute(SCRIPT_FLAG, '1');
 
 	const globalStyle = document.createElement('style');
-	globalStyle.id = 'be-google-home-global-style';
+	globalStyle.id = GLOBAL_STYLE_ID;
 	globalStyle.textContent = `
 		html[data-be-google-home="1"],
 		html[data-be-google-home="1"] body {
@@ -56,7 +66,7 @@
 
 	const mount = () => {
 		if (!document.body) return false;
-		if (document.getElementById('be-google-home-host')) return true;
+		if (document.getElementById(HOST_ID)) return true;
 
 		const getUid = () => {
 			const cookieUid = document.cookie
@@ -74,7 +84,7 @@
 
 		// Mount with Shadow DOM for style isolation.
 		const host = document.createElement('div');
-		host.id = 'be-google-home-host';
+		host.id = HOST_ID;
 		document.body.appendChild(host);
 
 		const shadow = host.attachShadow({ mode: 'open' });
@@ -304,10 +314,30 @@
 		return true;
 	};
 
-	if (!mount()) {
-		const bootObserver = new MutationObserver(() => {
-			if (mount()) bootObserver.disconnect();
-		});
-		bootObserver.observe(document.documentElement, { childList: true, subtree: true });
+	let mounted = false;
+	try {
+		mounted = mount();
+		if (!mounted) {
+			const bootObserver = new MutationObserver(() => {
+				if (mount()) {
+					mounted = true;
+					bootObserver.disconnect();
+				}
+			});
+			bootObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+			window.addEventListener('DOMContentLoaded', () => {
+				if (!mounted) mounted = mount();
+			}, { once: true });
+		}
+	} catch (error) {
+		console.error('[simple-bilibili] mount failed:', error);
+		rollback();
+		return;
 	}
+
+	// Fail-safe: if mount is still not ready shortly after load, restore original page.
+	setTimeout(() => {
+		if (!document.getElementById(HOST_ID)) rollback();
+	}, 3000);
 })();
