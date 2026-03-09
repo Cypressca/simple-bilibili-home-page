@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Bilibili Simple Home Page
 // @namespace    https://github.com/Cypressca/
-// @version      1.4.0
-// @description  A clean bilibili homepage with quick links, search, and auto dark mode.
+// @version      1.5.0
+// @description  A clean bilibili homepage with quick links, account entry, and system theme sync.
 // @author       Cypressca
 // @match        *://www.bilibili.com/*
 // @match        *://bilibili.com/*
@@ -21,10 +21,45 @@
 	const SCRIPT_FLAG = 'data-be-google-home';
 	const GLOBAL_STYLE_ID = 'be-google-home-global-style';
 	const HOST_ID = 'be-google-home-host';
+	const THEME_STYLE_ID = 'be-system-theme-style';
+
+	const enableSystemThemeSync = () => {
+		if (!/\.bilibili\.com$|^bilibili\.com$/.test(location.hostname)) return;
+		if (document.getElementById(THEME_STYLE_ID)) return;
+
+		const style = document.createElement('style');
+		style.id = THEME_STYLE_ID;
+		style.textContent = `
+			html[data-be-follow-system-theme="1"] {
+				color-scheme: light;
+			}
+
+			@media (prefers-color-scheme: dark) {
+				html[data-be-follow-system-theme="1"] {
+					color-scheme: dark;
+				}
+			}
+		`;
+		(document.head || document.documentElement).appendChild(style);
+
+		const mql = window.matchMedia('(prefers-color-scheme: dark)');
+		const applyThemeFlag = () => {
+			const mode = mql.matches ? 'dark' : 'light';
+			document.documentElement.setAttribute('data-be-follow-system-theme', '1');
+			document.documentElement.setAttribute('data-be-system-theme', mode);
+			document.documentElement.classList.toggle('theme-dark', mode === 'dark');
+			document.documentElement.classList.toggle('theme-light', mode !== 'dark');
+		};
+
+		applyThemeFlag();
+		mql.addEventListener('change', applyThemeFlag);
+	};
+
+	enableSystemThemeSync();
 
 	// Only apply on bilibili home page.
 	const isHome =
-		/^(www\.)?bilibili\.com$/.test(location.hostname) && /^\/$|^\/index\.html$/.test(location.pathname);
+		/^(www\.)?bilibili\.com$/.test(location.hostname) && /^(\/|\/index\.html)$/.test(location.pathname);
 	if (!isHome) return;
 
 	// Avoid duplicate injection.
@@ -81,6 +116,41 @@
 			if (matchedUid) return matchedUid;
 
 			return null;
+		};
+
+		const renderAccount = async (shadowRoot) => {
+			const entry = shadowRoot.getElementById('account-entry');
+			if (!entry) return;
+
+			entry.innerHTML = '<span class="account-loading">...</span>';
+			try {
+				const response = await fetch('https://api.bilibili.com/x/web-interface/nav', {
+					credentials: 'include'
+				});
+				const payload = await response.json();
+				const navData = payload?.data;
+
+				if (payload?.code === 0 && navData?.isLogin) {
+					const mid = String(navData.mid || '').trim();
+					const homeUrl = mid ? `https://space.bilibili.com/${mid}` : 'https://space.bilibili.com/';
+					const face = navData.face || 'https://i0.hdslb.com/bfs/face/member/noface.jpg';
+					const uname = navData.uname || '个人主页';
+					entry.innerHTML = `
+						<a class="account-link" href="${homeUrl}" title="${uname}">
+							<img class="avatar" src="${face}" alt="${uname}" referrerpolicy="no-referrer" />
+							<span class="account-name">${uname}</span>
+						</a>
+					`;
+					return;
+				}
+			} catch (error) {
+				console.warn('[simple-bilibili] account info fetch failed:', error);
+			}
+
+			entry.innerHTML = `
+				<a class="account-btn" href="https://passport.bilibili.com/login">登录</a>
+				<a class="account-btn account-btn-primary" href="https://passport.bilibili.com/register/phone.html">注册</a>
+			`;
 		};
 
 		// Mount with Shadow DOM for style isolation.
@@ -155,6 +225,81 @@
 				border-radius: 14px;
 				background: var(--panel);
 				backdrop-filter: blur(10px);
+			}
+
+			.account {
+				position: absolute;
+				top: 18px;
+				right: 18px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding: 6px;
+				border: 1px solid var(--panel-border);
+				border-radius: 14px;
+				background: var(--panel);
+				backdrop-filter: blur(10px);
+			}
+
+			.account-loading {
+				font-size: 12px;
+				color: var(--text-sub);
+				padding: 8px 10px;
+			}
+
+			.account-link {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				text-decoration: none;
+				color: var(--link);
+				padding: 4px 8px 4px 4px;
+				border-radius: 11px;
+				transition: background-color 0.2s ease, color 0.2s ease;
+			}
+
+			.account-link:hover {
+				color: var(--link-hover);
+				background: rgba(0, 161, 214, 0.12);
+			}
+
+			.avatar {
+				width: 28px;
+				height: 28px;
+				border-radius: 50%;
+				object-fit: cover;
+			}
+
+			.account-name {
+				font-size: 13px;
+				max-width: 140px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+
+			.account-btn {
+				text-decoration: none;
+				font-size: 13px;
+				color: var(--link);
+				padding: 8px 10px;
+				border-radius: 10px;
+				transition: background-color 0.2s ease, color 0.2s ease;
+			}
+
+			.account-btn:hover {
+				color: var(--link-hover);
+				background: rgba(0, 161, 214, 0.12);
+			}
+
+			.account-btn-primary {
+				background: #00a1d6;
+				color: #fff;
+			}
+
+			.account-btn-primary:hover {
+				color: #fff;
+				background: #0095c5;
 			}
 
 			.top-nav a {
@@ -249,6 +394,22 @@
 					padding: 8px;
 				}
 
+				.account {
+					top: 12px;
+					right: 12px;
+					padding: 5px;
+					border-radius: 12px;
+				}
+
+				.account-name {
+					display: none;
+				}
+
+				.account-btn {
+					font-size: 12px;
+					padding: 8px;
+				}
+
 				.card {
 					gap: 18px;
 					transform: translateY(-4vh);
@@ -278,6 +439,7 @@
 				<a href="https://www.bilibili.com/watchlater/" title="稍后再看">稍后再看</a>
 				<a id="fav-link" href="https://space.bilibili.com/" title="收藏">收藏</a>
 			</nav>
+			<div class="account" id="account-entry" aria-label="账户入口"></div>
 			<section class="card">
 				${logoSvg}
 				<form class="search" action="https://search.bilibili.com/all" method="get">
@@ -302,6 +464,8 @@
 		if (favLink && uid) {
 			favLink.href = `https://space.bilibili.com/${uid}/favlist`;
 		}
+
+		renderAccount(shadow);
 
 		// Re-attach host if another script replaces body children.
 		const observer = new MutationObserver(() => {
