@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Simple Home Page
 // @namespace    https://github.com/Cypressca/
-// @version      1.6.0
+// @version      1.7.0
 // @description  A clean bilibili homepage with quick links, account entry, and system theme sync.
 // @author       Cypressca
 // @match        *://www.bilibili.com/*
@@ -66,27 +66,19 @@
 		`;
 		(document.head || document.documentElement).appendChild(fallbackStyle);
 
-		let fallbackTimer = null;
 		const scheduleFallback = (mode) => {
 			if (isHomePage) {
 				document.documentElement.removeAttribute('data-be-force-dark');
 				return;
 			}
-			if (fallbackTimer) window.clearTimeout(fallbackTimer);
+
 			if (mode !== 'dark') {
 				document.documentElement.removeAttribute('data-be-force-dark');
 				return;
 			}
 
-			fallbackTimer = window.setTimeout(() => {
-				const darkHint = `${document.documentElement.className} ${document.body?.className || ''} ${document.documentElement.getAttribute('data-theme') || ''}`;
-				const hasNativeDark = /dark|night|theme-dark/i.test(darkHint);
-				if (!hasNativeDark) {
-					document.documentElement.setAttribute('data-be-force-dark', '1');
-				} else {
-					document.documentElement.removeAttribute('data-be-force-dark');
-				}
-			}, 1200);
+			// Force fallback dark outside custom homepage to guarantee visual effect.
+			document.documentElement.setAttribute('data-be-force-dark', '1');
 		};
 
 		const applyThemeFlag = () => {
@@ -168,6 +160,57 @@
 			const entry = shadowRoot.getElementById('account-entry');
 			if (!entry) return;
 
+			const getUnreadCount = async () => {
+				try {
+					const msgfeed = await fetch('https://api.bilibili.com/x/msgfeed/unread', {
+						credentials: 'include'
+					});
+					const payload = await msgfeed.json();
+					if (payload?.code === 0 && payload?.data) {
+						const data = payload.data;
+						return ['at', 'chat', 'like', 'reply', 'sys_msg', 'up']
+							.map((key) => Number(data[key] || 0))
+							.reduce((sum, value) => sum + value, 0);
+					}
+				} catch (error) {
+					console.warn('[simple-bilibili] msgfeed unread fetch failed:', error);
+				}
+
+				try {
+					const whisper = await fetch('https://api.vc.bilibili.com/session_svr/v1/session_svr/single_unread', {
+						credentials: 'include'
+					});
+					const payload = await whisper.json();
+					if (payload?.code === 0 && payload?.data) {
+						return Object.entries(payload.data)
+							.filter(([key]) => /_unread$/.test(key))
+							.map(([, value]) => Number(value || 0))
+							.reduce((sum, value) => sum + value, 0);
+					}
+				} catch (error) {
+					console.warn('[simple-bilibili] whisper unread fetch failed:', error);
+				}
+
+				return 0;
+			};
+
+			const withMessageEntry = async (accountHtml) => {
+				entry.innerHTML = `
+					<a class="message-link" href="https://message.bilibili.com/#/whisper" title="消息">
+						<span>消息</span>
+						<span class="msg-badge" id="msg-badge" hidden>0</span>
+					</a>
+					${accountHtml}
+				`;
+
+				const unread = await getUnreadCount();
+				const badge = shadowRoot.getElementById('msg-badge');
+				if (badge && unread > 0) {
+					badge.hidden = false;
+					badge.textContent = unread > 99 ? '99+' : String(unread);
+				}
+			};
+
 			entry.innerHTML = '<span class="account-loading">...</span>';
 			try {
 				const response = await fetch('https://api.bilibili.com/x/web-interface/nav', {
@@ -181,22 +224,22 @@
 					const homeUrl = mid ? `https://space.bilibili.com/${mid}` : 'https://space.bilibili.com/';
 					const face = navData.face || 'https://i0.hdslb.com/bfs/face/member/noface.jpg';
 					const uname = navData.uname || '个人主页';
-					entry.innerHTML = `
+					await withMessageEntry(`
 						<a class="account-link" href="${homeUrl}" title="${uname}">
 							<img class="avatar" src="${face}" alt="${uname}" referrerpolicy="no-referrer" />
 							<span class="account-name">${uname}</span>
 						</a>
-					`;
+					`);
 					return;
 				}
 			} catch (error) {
 				console.warn('[simple-bilibili] account info fetch failed:', error);
 			}
 
-			entry.innerHTML = `
+			await withMessageEntry(`
 				<a class="account-btn" href="https://passport.bilibili.com/login">登录</a>
 				<a class="account-btn account-btn-primary" href="https://passport.bilibili.com/register/phone.html">注册</a>
-			`;
+			`);
 		};
 
 		// Mount with Shadow DOM for style isolation.
@@ -285,6 +328,36 @@
 				border-radius: 14px;
 				background: var(--panel);
 				backdrop-filter: blur(10px);
+			}
+
+			.message-link {
+				position: relative;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				text-decoration: none;
+				font-size: 13px;
+				color: var(--link);
+				padding: 8px 10px;
+				border-radius: 10px;
+				transition: background-color 0.2s ease, color 0.2s ease;
+			}
+
+			.message-link:hover {
+				color: var(--link-hover);
+				background: rgba(0, 161, 214, 0.12);
+			}
+
+			.msg-badge {
+				min-width: 16px;
+				height: 16px;
+				padding: 0 4px;
+				border-radius: 8px;
+				background: #fb7299;
+				color: #fff;
+				font-size: 10px;
+				line-height: 16px;
+				text-align: center;
 			}
 
 			.account-loading {
@@ -456,6 +529,11 @@
 					padding: 8px;
 				}
 
+				.message-link {
+					font-size: 12px;
+					padding: 8px;
+				}
+
 				.card {
 					gap: 18px;
 					transform: translateY(-4vh);
@@ -481,6 +559,7 @@
 		<main class="page" part="page">
 			<nav class="top-nav" aria-label="快捷导航">
 				<a href="https://t.bilibili.com/" title="动态">动态</a>
+				<a href="https://message.bilibili.com/#/whisper" title="消息">消息</a>
 				<a href="https://www.bilibili.com/account/history" title="历史">历史</a>
 				<a href="https://www.bilibili.com/watchlater/" title="稍后再看">稍后再看</a>
 				<a id="fav-link" href="https://space.bilibili.com/" title="收藏">收藏</a>
