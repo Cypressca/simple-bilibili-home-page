@@ -72,6 +72,8 @@
 1. 在 Tampermonkey 中确认脚本状态为“已启用”。
 2. 打开脚本管理页，手动点击“检查更新”。
 3. 访问 `https://www.bilibili.com/` 或 `https://www.bilibili.com/index.html` 复测。
+4. 在浏览器扩展设置中，确认 Tampermonkey 对 bilibili 的“站点访问权限”为允许（建议“在所有网站上”）。
+5. 若使用的是其他脚本管理器（如旧版 Violentmonkey），建议升级到最新版本后重试。
 
 ### 3. 依赖与运行前提
 

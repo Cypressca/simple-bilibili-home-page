@@ -4,8 +4,9 @@
 // @version      1.4.0
 // @description  A clean bilibili homepage with quick links, search, and auto dark mode.
 // @author       Cypressca
-// @match        https://www.bilibili.com/*
-// @match        https://bilibili.com/*
+// @match        *://www.bilibili.com/*
+// @match        *://bilibili.com/*
+// @include      *://*.bilibili.com/*
 // @run-at       document-start
 // @grant        none
 // @license      MIT
