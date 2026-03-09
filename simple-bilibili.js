@@ -56,6 +56,20 @@
 		if (!document.body) return false;
 		if (document.getElementById('be-google-home-host')) return true;
 
+		const getUid = () => {
+			const cookieUid = document.cookie
+				.split('; ')
+				.find((item) => item.startsWith('DedeUserID='))
+				?.split('=')[1];
+			if (cookieUid && /^\d+$/.test(cookieUid)) return cookieUid;
+
+			const profileLink = document.querySelector('a[href*="space.bilibili.com/"]');
+			const matchedUid = profileLink?.href.match(/space\.bilibili\.com\/(\d+)/)?.[1];
+			if (matchedUid) return matchedUid;
+
+			return null;
+		};
+
 		// Mount with Shadow DOM for style isolation.
 		const host = document.createElement('div');
 		host.id = 'be-google-home-host';
@@ -249,7 +263,7 @@
 				<a href="https://t.bilibili.com/" title="动态">动态</a>
 				<a href="https://www.bilibili.com/account/history" title="历史">历史</a>
 				<a href="https://www.bilibili.com/watchlater/" title="稍后再看">稍后再看</a>
-				<a href="https://space.bilibili.com/favlist" title="收藏">收藏</a>
+				<a id="fav-link" href="https://space.bilibili.com/" title="收藏">收藏</a>
 			</nav>
 			<section class="card">
 				${logoSvg}
@@ -269,6 +283,12 @@
 	`;
 
 		shadow.appendChild(wrap);
+
+		const uid = getUid();
+		const favLink = shadow.getElementById('fav-link');
+		if (favLink && uid) {
+			favLink.href = `https://space.bilibili.com/${uid}/favlist`;
+		}
 
 		// Re-attach host if another script replaces body children.
 		const observer = new MutationObserver(() => {
