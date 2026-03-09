@@ -1,91 +1,120 @@
 # simple-bilibili-home-page
 
-一个用于 Tampermonkey 的哔哩哔哩主页精简脚本，提供更简洁、聚焦搜索的首页体验。
+一个 Tampermonkey 用户脚本，用于把哔哩哔哩首页改造成简洁启动页，并补充常用入口与主题联动能力。
 
-[![安装脚本](https://img.shields.io/badge/Tampermonkey-一键安装-00AEEC?style=for-the-badge)](https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.user.js)
+[![Tampermonkey 一键安装](https://img.shields.io/badge/Tampermonkey-一键安装-00AEEC?style=for-the-badge)](https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.user.js)
 
-## 功能
+## 项目目标
 
-- 左上角快捷入口：动态、历史、稍后再看、收藏
-- 中央搜索框：直接跳转哔哩哔哩搜索
-- Logo 使用内联 SVG，避免本地文件或跨域加载失败
-- 支持暗色模式并自动跟随系统主题
-- `document-start` 提前注入，减少原主页闪屏
-- 禁止主页滚动，避免“覆盖层 + 原页面可滚动”问题
-- 对 Bilibili Evolved 等扩展更友好
-- 收藏链接自动识别 UID：`https://space.bilibili.com/$UID$/favlist`
+- 首页更干净：减少视觉噪音，聚焦搜索和常用入口。
+- 登录态更清晰：显示个人头像入口，未登录显示登录/注册。
+- 系统主题联动：全站跟随系统亮暗模式。
 
-## 安装方式（简体中文）
+## 当前功能
 
-### 方式一：推荐（可自动更新）
+### 首页改造
 
-1. 浏览器安装 Tampermonkey：
-	- Chrome/Edge/Firefox 均可使用。
-2. 打开脚本直链（Raw）：
-	- `https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.user.js`
-3. Tampermonkey 会弹出安装页面，点击“安装”。
-4. 安装后访问：
+- 中央搜索框（跳转哔哩哔哩搜索）
+- 左上快捷入口：`消息`、`动态`、`历史`、`稍后再看`、`收藏`
+- `消息` 入口支持未读红点数字（`99+` 封顶显示）
+- Logo 使用内联 SVG，避免本地文件加载失败
+- 首页禁滚动，减少原页面闪动和穿透操作
+
+### 账号入口
+
+- 已登录：右上显示头像与用户名，点击进入个人主页
+- 未登录：右上显示 `登录 / 注册` 入口
+
+### 主题能力
+
+- 监听系统主题变化：`prefers-color-scheme`
+- 同步 B 站主题相关状态（例如 `theme_style`、`pbp_theme_v4`）
+- 首页与全站页面都可感知系统亮暗变化
+
+### 兼容性优化
+
+- `document-start` 提前注入
+- `@noframes` + 顶层窗口判断，避免 iframe 重复执行
+- 对不同域名访问形态兼容：`bilibili.com` / `www.bilibili.com`
+
+## 安装
+
+### 推荐安装（支持自动更新）
+
+1. 安装 Tampermonkey（Chrome / Edge / Firefox 均可）。
+2. 打开安装链接：
+	 - `https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.user.js`
+3. Tampermonkey 弹出安装页后点击安装。
+4. 打开 `https://www.bilibili.com/` 验证效果。
+
+### 手动安装（不推荐）
+
+1. 打开 `simple-bilibili.js`
+2. 复制脚本内容到 Tampermonkey 新建脚本
+3. 保存并启用
+
+说明：手动安装不利于后续自动升级。
+
+## 更新机制
+
+- 脚本已配置 `@updateURL` 与 `@downloadURL`
+- 通过 `.user.js` 链接安装后，Tampermonkey 可自动检查更新
+- 每次发布会提升 `@version`
+
+## 作用范围
+
+- 首页改造仅在：
 	- `https://www.bilibili.com/`
+	- `https://www.bilibili.com/index.html`
+	- `https://bilibili.com/`
+	- `https://bilibili.com/index.html`
+- 全站主题联动可作用于其他 `*.bilibili.com` 页面
 
-说明：
-- 本脚本头部已包含 `@updateURL` 和 `@downloadURL`。
-- 通过上面的 Raw 链接安装后，Tampermonkey 可自动检查新版本。
+## 依赖与权限
 
-### 方式二：手动安装（不推荐）
-
-1. 打开仓库中的 `simple-bilibili.js`。
-2. 复制全部内容。
-3. Tampermonkey 新建脚本并粘贴保存。
-
-说明：
-- 手动粘贴方式通常不会自动跟进上游更新。
-- 若继续使用此方式，需要你手动替换脚本内容。
-
-## 更新说明
-
-- 发布新版本时会提升 `@version`。
-- Tampermonkey 在下次检查更新时会提示或自动更新（取决于你的扩展设置）。
-
-## 兼容性说明
-
-- 仅作用于 `https://www.bilibili.com/` 根路径。
-- 与 Bilibili Evolved 共存时，若出现样式冲突，建议在 Tampermonkey 中调整脚本顺序或优先级。
+- 依赖：Tampermonkey 或兼容 Userscript 管理器
+- 脚本本身无第三方 npm 依赖
+- 需要浏览器允许脚本在 bilibili 域名运行
 
 ## 常见问题
 
-### 1. 点击链接没有弹出安装
+### 安装链接不弹脚本安装页
 
-- 请使用 `.user.js` 链接：
+- 必须使用 `.user.js` 直链：
 	- `https://raw.githubusercontent.com/Cypressca/simple-bilibili-home-page/main/simple-bilibili.user.js`
-- 确认 Tampermonkey 已安装并启用。
+- 检查 Tampermonkey 是否安装并启用
 
-### 2. 别的用户安装后不生效
+### 脚本显示“执行多次”
 
-可能原因：
-- 安装的是旧版本脚本。
-- 浏览器打开的首页地址不是 `/`（例如 `/index.html`）。
-- Tampermonkey 没有该站点权限，或脚本被禁用。
-- 浏览器安装了多个同类脚本，对首页样式互相覆盖。
-- 扩展管理器使用了“受限模式”，未允许在 bilibili 上运行。
+- 通常由 iframe 注入导致
+- 本项目已加 `@noframes` 和 `window.top === window.self` 保护
 
-建议排查：
-1. 在 Tampermonkey 中确认脚本状态为“已启用”。
-2. 打开脚本管理页，手动点击“检查更新”。
-3. 访问 `https://www.bilibili.com/` 或 `https://www.bilibili.com/index.html` 复测。
-4. 在浏览器扩展设置中，确认 Tampermonkey 对 bilibili 的“站点访问权限”为允许（建议“在所有网站上”）。
-5. 若使用的是其他脚本管理器（如旧版 Violentmonkey），建议升级到最新版本后重试。
+### 其他用户安装后不生效
 
-### 3. 依赖与运行前提
+建议按顺序排查：
 
-- 需要安装并启用 Tampermonkey（或兼容的 Userscript 管理器）。
-- 脚本适配域名：`bilibili.com` 与 `www.bilibili.com`。
-- 建议仅保留一个“首页改造类”脚本，避免互相覆盖。
+1. 确认脚本启用且已更新到最新版本
+2. 扩展站点权限设为允许 bilibili（建议“所有网站”）
+3. 确认没有其他“首页改造类脚本”冲突
+4. 访问首页根路径复测：`https://www.bilibili.com/`
 
-## 文件结构
+## 隐私说明
 
-- `simple-bilibili.js`：主脚本
-- `Bilibili_logo_blue.svg`：Logo 源文件（用于生成内联 SVG）
+- 脚本仅在浏览器本地执行
+- 仅请求 B 站官方接口（用于登录态、消息未读等显示）
+- 不上传你的账号数据到第三方服务
 
-## 许可证
+## 文件说明
+
+- `simple-bilibili.js`：主开发文件
+- `simple-bilibili.user.js`：发布/安装入口文件
+- `Bilibili_logo_blue.svg`：Logo 源文件（脚本内使用内联 SVG）
+
+## 仓库与反馈
+
+- 仓库地址：`https://github.com/Cypressca/simple-bilibili-home-page`
+- 问题反馈：`https://github.com/Cypressca/simple-bilibili-home-page/issues`
+
+## License
 
 MIT
